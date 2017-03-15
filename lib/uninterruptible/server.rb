@@ -1,3 +1,5 @@
+require 'socket'
+
 module Uninterruptible
   # The meat and potatoes of uninterruptible, include this in your server, configure it and override #handle_request.
   #
@@ -32,8 +34,13 @@ module Uninterruptible
     end
 
     # Configure the server, see {Uninterruptible::Configuration} for full options.
+    #
+    # @yield [Uninterruptible::Configuration] the current configuration for this server instance
+    #
+    # @return [Uninterruptible::Configuration] the current configuration (after yield)
     def configure
       yield server_configuration if block_given?
+      server_configuration
     end
 
     # Starts the server, this is a blocking operation. Bind to the address and port specified in the configuration,
