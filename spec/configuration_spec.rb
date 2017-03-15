@@ -62,4 +62,26 @@ RSpec.describe Uninterruptible::Configuration do
       expect { configuration.start_command }.to raise_error(Uninterruptible::ConfigurationError)
     end
   end
+
+  describe '#log_path' do
+    it 'returns the value set by log_path=' do
+      configuration.log_path = 'log/server.log'
+      expect(configuration.log_path).to eq('log/server.log')
+    end
+
+    it 'defaults to STDOUT when unset' do
+      expect(configuration.log_path).to eq(STDOUT)
+    end
+  end
+
+  describe "#log_level" do
+    it 'returns the value set by log_level=' do
+      configuration.log_level = Logger::FATAL
+      expect(configuration.log_level).to eq(Logger::FATAL)
+    end
+
+    it 'defaults to Logger::INFO when unset' do
+      expect(configuration.log_level).to eq(Logger::INFO)
+    end
+  end
 end

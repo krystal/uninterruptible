@@ -1,4 +1,5 @@
 require 'socket'
+require 'logger'
 
 module Uninterruptible
   # The meat and potatoes of uninterruptible, include this in your server, configure it and override #handle_request.
@@ -49,6 +50,8 @@ module Uninterruptible
       @active_connections = 0
       @mutex = Mutex.new
 
+      logger.info "Starting server on #{server_configuration.bind_address}:#{server_configuration.bind_port}"
+
       establish_tcp_server
       write_pidfile
       setup_signal_traps
@@ -70,6 +73,7 @@ module Uninterruptible
     def accept_connections
       loop do
         Thread.start(tcp_server.accept) do |client_socket|
+          logger.debug "Accepted connection from #{client_socket.peeraddr.last}"
           process_request(client_socket)
         end
       end
@@ -94,9 +98,11 @@ module Uninterruptible
     def establish_tcp_server
       if ENV['TCP_SERVER_FD']
         # If there's a file descriptor present, take over from a previous instance of this server and kill it off
+        logger.debug "Reconnecting to file descriptor..."
         @tcp_server = TCPServer.for_fd(ENV['TCP_SERVER_FD'].to_i)
         kill_parent
       else
+        logger.debug "Opening new socket..."
         @tcp_server = TCPServer.open(server_configuration.bind_address, server_configuration.bind_port)
       end
 
@@ -109,6 +115,7 @@ module Uninterruptible
     # Send a TERM signal to the parent process. This will be called by a newly spawned server if it has been started
     # by another instance of this server.
     def kill_parent
+      logger.debug "Killing parent process #{Process.ppid}"
       Process.kill('TERM', Process.ppid)
     end
 
@@ -116,6 +123,7 @@ module Uninterruptible
     def write_pidfile
       return unless server_configuration.pidfile_path
 
+      logger.debug "Writing pid to #{server_configuration.pidfile_path}"
       File.write(server_configuration.pidfile_path, Process.pid.to_s)
     end
 
@@ -137,13 +145,11 @@ module Uninterruptible
 
     # Stop listening on tcp_server, wait until all active connections have finished processing and exit with 0.
     def graceful_shutdown
-      tcp_server.close
+      tcp_server.close unless tcp_server.closed?
 
       until active_connections.zero?
-        STDOUT.puts "#{active_connections} active connections"
         sleep 0.5
       end
-      STDOUT.puts "All active gone away"
 
       Process.exit(0)
     end
@@ -162,6 +168,14 @@ module Uninterruptible
     # @return [Uninterruptible::Configuration] Current or new configuration if unset.
     def server_configuration
       @server_configuration ||= Uninterruptible::Configuration.new
+    end
+
+    def logger
+      @logger ||= begin
+        log = Logger.new(server_configuration.log_path)
+        log.level = server_configuration.log_level
+        log
+      end
     end
   end
 end

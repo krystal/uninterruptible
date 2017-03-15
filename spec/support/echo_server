@@ -16,5 +16,6 @@ end
 echo_server = EchoServer.new
 echo_server.configure do |config|
   config.start_command = 'spec/support/echo_server'
+  config.log_level = Logger::FATAL
 end
 echo_server.run

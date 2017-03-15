@@ -3,7 +3,7 @@ module Uninterruptible
   #
   # See {Server#configure} for usage instructions.
   class Configuration
-    attr_writer :bind_port, :bind_address, :pidfile_path, :start_command
+    attr_writer :bind_port, :bind_address, :pidfile_path, :start_command, :log_path, :log_level
 
     # Available TCP Port for the server to bind to (required). Falls back to environment variable PORT if set.
     #
@@ -32,6 +32,16 @@ module Uninterruptible
     def start_command
       raise ConfigurationError, "You must configure a start_command" unless @start_command
       @start_command
+    end
+
+    # Where should log output be written to? (defaults to STDOUT)
+    def log_path
+      @log_path || STDOUT
+    end
+
+    # Severity of entries written to the log, should be one of Logger::Severity (default Logger::INFO)
+    def log_level
+      @log_level || Logger::INFO
     end
   end
 end
