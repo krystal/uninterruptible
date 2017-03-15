@@ -10,7 +10,7 @@ hope for the best.
 You _know_ that you'll need to restart it one day and cross your fingers that you can kill the old one and start the
 new one before anyone notices. Not ideal at all.
 
-![Just a quick switch](http://imgur.com/a/ax5X9)
+![Just a quick switch](http://i.imgur.com/aFyJJM6.jpg)
 
 Uninterruptible gives your socket server magic restarting powers. Using the magnificence of file descriptors we can
 pass the open socket to a new copy of the server before the old one goes away.
