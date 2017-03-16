@@ -3,7 +3,7 @@ module Uninterruptible
   #
   # See {Server#configure} for usage instructions.
   class Configuration
-    attr_writer :bind_port, :bind_address, :pidfile_path, :start_command, :log_path, :log_level
+    attr_writer :bind, :bind_port, :bind_address, :pidfile_path, :start_command, :log_path, :log_level
 
     # Available TCP Port for the server to bind to (required). Falls back to environment variable PORT if set.
     #
@@ -14,9 +14,14 @@ module Uninterruptible
       port.to_i
     end
 
-    # Address to bind the server to (defaults to +::+).
+    # Address to bind the server to (defaults to +0.0.0.0+).
     def bind_address
-      @bind_address || "::"
+      @bind_address || "0.0.0.0"
+    end
+
+    # URI to bind to, falls back to tcp://bind_address:bind_port if unset
+    def bind
+      @bind || "tcp://#{bind_address}:#{bind_port}"
     end
 
     # Location to write the pid of the current server to. If blank pidfile will not be written. Falls back to

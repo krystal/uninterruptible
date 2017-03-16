@@ -5,6 +5,20 @@ RSpec.describe Uninterruptible::Configuration do
 
   let(:configuration) { described_class.new }
 
+  describe "#bind" do
+    it 'falls back to a TCP address with #bind_address and #bind_port' do
+      configuration.bind_port = 1024
+      configuration.bind_address = '127.0.0.2'
+
+      expect(configuration.bind).to eq('tcp://127.0.0.2:1024')
+    end
+
+    it 'returns the value set by #bind=' do
+      configuration.bind = "unix:///tmp/server.sock"
+      expect(configuration.bind).to eq("unix:///tmp/server.sock")
+    end
+  end
+
   describe "#bind_port" do
     it "falls back to PORT in ENV when unset" do
       within_env("PORT" => "1000") do
@@ -26,8 +40,8 @@ RSpec.describe Uninterruptible::Configuration do
   end
 
   describe "#bind_address" do
-    it 'defaults to :: if unset' do
-      expect(configuration.bind_address).to eq('::')
+    it 'defaults to 0.0.0.0 if unset' do
+      expect(configuration.bind_address).to eq('0.0.0.0')
     end
 
     it 'returns the value set by bind_address=' do

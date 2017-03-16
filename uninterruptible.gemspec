@@ -9,7 +9,7 @@ Gem::Specification.new do |spec|
   spec.authors       = ["Dan Wentworth"]
   spec.email         = ["dan@atechmedia.com"]
 
-  spec.summary       = "Zero-downtime restarts for your trivial TCP servers"
+  spec.summary       = "Zero-downtime restarts for your trivial socket servers"
   spec.description   = "Uninterruptible gives your socket server magic restarting powers. Send your running "\
      "Uninterruptible server USR1 and it will start a brand new copy of itself which will immediately start handling "\
      "new requests while the old server stays alive until all of it's active connections are complete."

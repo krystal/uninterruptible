@@ -30,7 +30,7 @@ module Uninterruptible
   module Server
     def self.included(base)
       base.class_eval do
-        attr_reader :active_connections, :tcp_server, :mutex
+        attr_reader :active_connections, :socket_server, :mutex
       end
     end
 
@@ -52,7 +52,7 @@ module Uninterruptible
 
       logger.info "Starting server on #{server_configuration.bind_address}:#{server_configuration.bind_port}"
 
-      establish_tcp_server
+      establish_socket_server
       write_pidfile
       setup_signal_traps
       accept_connections
@@ -72,7 +72,7 @@ module Uninterruptible
     # use a different concurrency pattern, a thread per connection is the default.
     def accept_connections
       loop do
-        Thread.start(tcp_server.accept) do |client_socket|
+        Thread.start(socket_server.accept) do |client_socket|
           logger.debug "Accepted connection from #{client_socket.peeraddr.last}"
           process_request(client_socket)
         end
@@ -93,23 +93,17 @@ module Uninterruptible
       end
     end
 
-    # Listen (or reconnect) to the bind address and port specified in the config. If TCP_SERVER_FD is set in the env,
-    # reconnect to that file descriptor. Once @tcp_server is set, write the file descriptor ID to the env.
-    def establish_tcp_server
-      if ENV['TCP_SERVER_FD']
-        # If there's a file descriptor present, take over from a previous instance of this server and kill it off
-        logger.debug "Reconnecting to file descriptor..."
-        @tcp_server = TCPServer.for_fd(ENV['TCP_SERVER_FD'].to_i)
-        kill_parent
-      else
-        logger.debug "Opening new socket..."
-        @tcp_server = TCPServer.open(server_configuration.bind_address, server_configuration.bind_port)
-      end
+    # Listen (or reconnect) to the bind address and port specified in the config. If socket_server_FD is set in the env,
+    # reconnect to that file descriptor. Once @socket_server is set, write the file descriptor ID to the env.
+    def establish_socket_server
+      @socket_server = Uninterruptible::Binder.new(server_configuration.bind).bind_to_socket
+      # If there's a file descriptor present, take over from a previous instance of this server and kill it off
+      kill_parent if ENV[SERVER_FD_VAR]
 
-      @tcp_server.autoclose = false
-      @tcp_server.close_on_exec = false
+      @socket_server.autoclose = false
+      @socket_server.close_on_exec = false
 
-      ENV["TCP_SERVER_FD"] = @tcp_server.to_i.to_s
+      ENV[SERVER_FD_VAR] = @socket_server.to_i.to_s
     end
 
     # Send a TERM signal to the parent process. This will be called by a newly spawned server if it has been started
@@ -143,9 +137,9 @@ module Uninterruptible
       end
     end
 
-    # Stop listening on tcp_server, wait until all active connections have finished processing and exit with 0.
+    # Stop listening on socket_server, wait until all active connections have finished processing and exit with 0.
     def graceful_shutdown
-      tcp_server.close unless tcp_server.closed?
+      socket_server.close unless socket_server.closed?
 
       until active_connections.zero?
         sleep 0.5

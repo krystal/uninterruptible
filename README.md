@@ -1,6 +1,6 @@
 # Uninterruptible
 
-Uninterruptible gives you zero downtime restarts for your TCP servers with nearly zero effort. Sounds good? Read on...
+Uninterruptible gives you zero downtime restarts for your socket servers with nearly zero effort. Sounds good? Read on.
 
 Small socket servers are great, sometimes you need a quick and efficient way of moving data between servers (or even
 processes on the same machine). Restarting these processes can be a bit hairy though, you either need to build your
@@ -60,11 +60,19 @@ finished processing all of it's existing connections. To kill the server (allowi
 ```ruby
 echo_server.configure do |config|
   config.start_command = 'ruby echo_server.rb' # *Required* Command to execute to start a new server process
-  config.bind_port = 6789 # *Required* Port to listen on, falls back to ENV['PORT']
-  config.bind_address = '::' # Address to listen on
+  config.bind = "tcp://0.0.0.0:12345" # *Required* Interface to listen on, falls back to 0.0.0.0 on ENV['PORT']
   config.pidfile_path = 'tmp/pids/echoserver.pid' # Location to write a pidfile, falls back to ENV['PID_FILE']
   config.log_path = 'log/echoserver.log' # Location to write logfile, defaults to STDOUT
   config.log_level = Logger::INFO # Log writing severity, defaults to Logger::INFO
+end
+```
+
+Uninterruptible supports both TCP and UNIX sockets. To connect to a unix socket simply pass the path in the bind
+configuration parameter:
+
+```ruby
+echo_server.configure do |config|
+  config.bind = "unix:///tmp/echo_server.sock"
 end
 ```
 
@@ -102,7 +110,7 @@ class EchoServer
 
   def worker_loop
     loop do
-      client_socket = tcp_server.accept
+      client_socket = socket_server.accept
       process_request(client_socket)
     end
   end
