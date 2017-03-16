@@ -17,7 +17,7 @@ pass the open socket to a new copy of the server before the old one goes away.
 
 ![INSERT MAGIC DIAGRAM HERE]()
 
-## Usage
+## Basic Usage
 
 Add this line to your application's Gemfile:
 
@@ -56,7 +56,7 @@ To restart the server just send `USR1`, a new server will start listening on you
 finished processing all of it's existing connections. To kill the server (allowing for all connections to finish) call
 `TERM`.
 
-Full configuration options are as follows:
+## Configuration Options
 
 ```ruby
 echo_server.configure do |config|
@@ -67,6 +67,39 @@ echo_server.configure do |config|
   config.log_path = 'log/echoserver.log' # Location to write logfile, defaults to STDOUT
   config.log_level = Logger::INFO # Log writing severity, defaults to Logger::INFO
 end
+```
+
+## Concurrency
+
+By default, Uninterruptible operates on a very simple one thread per connection concurrency model. If you'd like to use
+something more advanced such as a threadpool or an event driven pattern you can define this in your server class.
+
+By overriding `accept_connections` you can change how connections are accepted and handled. It is recommended that you
+call `process_request` from this method and still implement `handle_request` to do the bulk of the work since
+`process_request` tracks the number of active connections to the server.
+
+If you wanted to implement a threadpool to process your requests you could do the following:
+
+```ruby
+class EchoServer
+  # ...
+
+  def accept_connections
+    threads = 4.times.map do
+      Thread.new { worker_loop }
+    end
+
+    threads.each(&:join)
+  end
+
+  def worker_loop
+    loop do
+      client_socket = tcp_server.accept
+      process_request(client_socket)
+    end
+  end
+end
+```
 
 ## Contributing
 
