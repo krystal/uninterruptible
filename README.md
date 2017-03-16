@@ -12,10 +12,12 @@ new one before anyone notices. Not ideal at all.
 
 ![Just a quick switch](http://i.imgur.com/aFyJJM6.jpg)
 
-Uninterruptible gives your socket server magic restarting powers. Using the magnificence of file descriptors we can
-pass the open socket to a new copy of the server before the old one goes away.
+Uninterruptible gives your socket server magic restarting powers. Upon receiving USR1, your server will spawn a new
+copy of itself and pass the file descriptor of the open socket to the new server. The new server attaches itself to
+the file descriptor then sends a TERM signal to the original process. The original server stops listening on the socket
+and shuts itself down once all ongoing requests have completed.
 
-![INSERT MAGIC DIAGRAM HERE]()
+![Restart Flow](http://i.imgur.com/k8uNP55.png)
 
 ## Basic Usage
 
