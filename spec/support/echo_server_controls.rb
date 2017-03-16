@@ -1,3 +1,4 @@
+# Include this module in your tests to start and stop an echo server for testing purposes.
 module EchoServerControls
   def start_echo_server
     cleanup_echo_server
