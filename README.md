@@ -12,12 +12,9 @@ new one before anyone notices. Not ideal at all.
 
 ![Just a quick switch](http://i.imgur.com/aFyJJM6.jpg)
 
-Uninterruptible gives your socket server magic restarting powers. Upon receiving USR1, your server will spawn a new
-copy of itself and pass the file descriptor of the open socket to the new server. The new server attaches itself to
-the file descriptor then sends a TERM signal to the original process. The original server stops listening on the socket
-and shuts itself down once all ongoing requests have completed.
-
-![Restart Flow](http://i.imgur.com/k8uNP55.png)
+Uninterruptible gives your socket server magic restarting powers. Send your running Uninterruptible server USR1 and
+it will start a brand new copy of itself which will immediately start handling new requests while the old server stays
+alive until all of it's active connections are complete.
 
 ## Basic Usage
 
@@ -70,6 +67,15 @@ echo_server.configure do |config|
   config.log_level = Logger::INFO # Log writing severity, defaults to Logger::INFO
 end
 ```
+
+## The Magic
+
+Upon receiving `USR1`, your server will spawn a new copy of itself and pass the file descriptor of the open socket to
+the new server. The new server attaches itself to the file descriptor then sends a `TERM` signal to the original
+process. The original server stops listening on the socket and shuts itself down once all ongoing requests have
+completed.
+
+![Restart Flow](http://i.imgur.com/k8uNP55.png)
 
 ## Concurrency
 
