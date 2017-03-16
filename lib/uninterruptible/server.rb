@@ -50,7 +50,7 @@ module Uninterruptible
       @active_connections = 0
       @mutex = Mutex.new
 
-      logger.info "Starting server on #{server_configuration.bind_address}:#{server_configuration.bind_port}"
+      logger.info "Starting server on #{server_configuration.bind}"
 
       establish_socket_server
       write_pidfile
