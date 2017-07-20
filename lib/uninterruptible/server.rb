@@ -30,7 +30,7 @@ module Uninterruptible
   module Server
     def self.included(base)
       base.class_eval do
-        attr_reader :active_connections, :socket_server, :mutex
+        attr_reader :active_connections, :socket_server, :signal_pipe_r, :signal_pipe_w, :mutex
       end
     end
 
@@ -55,7 +55,7 @@ module Uninterruptible
       establish_socket_server
       write_pidfile
       setup_signal_traps
-      accept_connections
+      select_loop
     end
 
     # @abstract Override this method to process incoming requests. Each request is handled in it's own thread.
@@ -68,14 +68,29 @@ module Uninterruptible
 
     private
 
-    # Start a blocking loop which accepts new connections and hands them off to #process_request. Override this to
-    # use a different concurrency pattern, a thread per connection is the default.
-    def accept_connections
+    # Start a blocking loop which awaits new connections before calling #accept_client_connection. Also monitors
+    # signal_pipe_r for processing any signals sent to the process.
+    def select_loop
       loop do
-        Thread.start(socket_server.accept) do |client_socket|
-          logger.debug "Accepted connection from #{client_socket.peeraddr.last}"
-          process_request(client_socket)
+        readable, = IO.select([socket_server, signal_pipe_r])
+        readable.each do |reader|
+          if reader == socket_server
+            accept_client_connection
+          elsif reader == signal_pipe_r
+            signal = reader.gets.chomp
+            process_signal(signal)
+          end
         end
+      end
+    end
+
+    # Accept a waiting connection. Should only be called when it is known a connection is waiting, from an IO.select
+    # loop for example. By default this creates one thread per connection. Override this method to provide a new
+    # concurrency model.
+    def accept_client_connection
+      Thread.start(socket_server.accept_nonblock) do |client_socket|
+        logger.debug "Accepted connection from #{client_socket.peeraddr.last}"
+        process_request(client_socket)
       end
     end
 
@@ -121,18 +136,35 @@ module Uninterruptible
       File.write(server_configuration.pidfile_path, Process.pid.to_s)
     end
 
-    # Catch TERM and USR1 signals which control the lifecycle of the server.
+    # Catch TERM and USR1 signals which control the lifecycle of the server. These get written to an internal pipe
+    # which will be picked up by the main accept_connection loop and passed to #process_signal
     def setup_signal_traps
-      # On TERM begin a graceful shutdown, if a second TERM is received shutdown immediately with an exit code of 1
-      Signal.trap('TERM') do
-        Process.exit(1) if $shutdown
+      @signal_pipe_r, @signal_pipe_w = IO.pipe
 
-        $shutdown = true
-        graceful_shutdown
+      %w(TERM USR1).each do |signal_name|
+        trap(signal_name) do
+          @signal_pipe_w.puts(signal_name)
+        end
       end
+    end
 
-      # On USR1 begin a hot restart
-      Signal.trap('USR1') do
+    # When a signal has been caught, it should be passed here for the appropriate action to be taken
+    # On TERM begin a graceful shutdown, if a second TERM is received shutdown immediately with an exit code of 1
+    # On USR1 begin a hot restart which will bring up a new copy of the server and then shut down the old one
+    #
+    # @param [String] signal_name Signal to process
+    def process_signal(signal_name)
+      if signal_name == 'TERM'
+        if $shutdown
+          logger.info "TERM received again, exiting immediately"
+          Process.exit(1) if $shutdown
+        else
+          logger.info "TERM received, starting graceful shutdown"
+          $shutdown = true
+          graceful_shutdown
+        end
+      elsif signal_name == 'USR1'
+        logger.info "USR1 received, hot restart in progress"
         hot_restart
       end
     end
@@ -142,8 +174,11 @@ module Uninterruptible
       socket_server.close unless socket_server.closed?
 
       until active_connections.zero?
+        logger.debug "#{active_connections} connections still active"
         sleep 0.5
       end
+
+      logger.debug "No more active connections. Exiting'"
 
       Process.exit(0)
     end

@@ -90,9 +90,11 @@ completed.
 By default, Uninterruptible operates on a very simple one thread per connection concurrency model. If you'd like to use
 something more advanced such as a threadpool or an event driven pattern you can define this in your server class.
 
-By overriding `accept_connections` you can change how connections are accepted and handled. It is recommended that you
-call `process_request` from this method and still implement `handle_request` to do the bulk of the work since
+By overriding `accept_client_connection` you can change how connections are accepted and handled. It is recommended
+that you call `process_request` from this method and still implement `handle_request` to do the bulk of the work since
 `process_request` tracks the number of active connections to the server.
+
+`accept_client_connection` is called whenever a connection is waiting to be accepted on the socket server.
 
 If you wanted to implement a threadpool to process your requests you could do the following:
 
@@ -100,8 +102,8 @@ If you wanted to implement a threadpool to process your requests you could do th
 class EchoServer
   # ...
 
-  def accept_connections
-    threads = 4.times.map do
+  def accept_client_connection
+    @worker_threads ||= 4.times.map do
       Thread.new { worker_loop }
     end
 
