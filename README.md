@@ -64,6 +64,9 @@ echo_server.configure do |config|
   config.pidfile_path = 'tmp/pids/echoserver.pid' # Location to write a pidfile, falls back to ENV['PID_FILE']
   config.log_path = 'log/echoserver.log' # Location to write logfile, defaults to STDOUT
   config.log_level = Logger::INFO # Log writing severity, defaults to Logger::INFO
+  config.tls_version = 'TLSv1_2' # TLS version to use, defaults to TLSv1_2, falls back to ENV['TLS_VERSION']
+  config.tls_key = nil # Private key to use for TLS, reads file from ENV['TLS_KEY'] if set
+  config.tls_certificate = nil # Certificate to use for TLS, reads file from ENV['TLS_CERTIFICATE'] if set
 end
 ```
 
@@ -118,6 +121,10 @@ class EchoServer
   end
 end
 ```
+
+## TLS Support
+
+If you would like to encrypt your TCP socket, Uninterruptible supports TLSv1.1 and TLSv1.2. Simply set `configuration.tls_key` and `configuration.tls_certificate` (see "Configuration" above) and your TCP socket will automatically be wrapped with TLS.
 
 ## Contributing
 

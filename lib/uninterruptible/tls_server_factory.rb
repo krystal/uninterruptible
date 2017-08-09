@@ -4,11 +4,19 @@ module Uninterruptible
   class TLSServerFactory
     attr_reader :configuration
 
+    # @param [Uninterruptible::Configuration] configuration Object with valid TLS configuration options
+    #
+    # @raise [Uninterruptible::ConfigurationError] Correct options are not set for TLS
     def initialize(configuration)
       @configuration = configuration
       check_configuration!
     end
 
+    # Accepts a TCP server, gives it a nice friendly SSLServer wrapper and returns the SSLServer
+    #
+    # @param [TCPServer] tcp_server Server to be wrapped
+    #
+    # @return [OpenSSL::SSL::SSLServer] tcp_server with a TLS layer
     def wrap_with_tls(tcp_server)
       server = OpenSSL::SSL::SSLServer.new(tcp_server, ssl_context)
       server.start_immediately = true
@@ -17,6 +25,9 @@ module Uninterruptible
 
     private
 
+    # Build an OpenSSL::SSL::SSLContext object from the configuration passed to the initializer
+    #
+    # @return [OpenSSL::SSL::SSLContext] SSL context for the server config
     def ssl_context
       context = OpenSSL::SSL::SSLContext.new
       context.cert = OpenSSL::X509::Certificate.new(configuration.tls_certificate)
@@ -25,6 +36,9 @@ module Uninterruptible
       context
     end
 
+    # Check the configuration parameters for TLS are correct
+    #
+    # @raise [Uninterruptible::ConfigurationError] Correct options are not set for TLS
     def check_configuration!
       raise ConfigurationError, "TLS can only be used on TCP servers" unless configuration.bind.start_with?('tcp://')
 
