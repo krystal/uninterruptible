@@ -98,4 +98,78 @@ RSpec.describe Uninterruptible::Configuration do
       expect(configuration.log_level).to eq(Logger::INFO)
     end
   end
+
+  describe "#tls_version" do
+    it 'returns the value set by #tls_version=' do
+      within_env("TLS_VERSION" => 'NOTVERSION') do
+        configuration.tls_version = "TLSv1_2"
+        expect(configuration.tls_version).to eq("TLSv1_2")
+      end
+    end
+
+    it 'falls back to TLS_VERSION in env when unset' do
+      within_env("TLS_VERSION" => 'TLSv1_1') do
+        expect(configuration.tls_version).to eq("TLSv1_1")
+      end
+    end
+
+    it 'returns nil when unset' do
+      expect(configuration.tls_version).to be_nil
+    end
+
+    it "raises an error if the version is not approved" do
+      configuration.tls_version = "SSLv3"
+      expect { configuration.tls_version }.to raise_error(Uninterruptible::ConfigurationError)
+    end
+  end
+
+  describe '#tls_key' do
+    it 'returns the value set by #tls_key=' do
+      within_env("TLS_KEY" => 'dummypath') do
+        configuration.tls_key = "BEGIN PRIVATE KEY"
+        expect(configuration.tls_key).to eq("BEGIN PRIVATE KEY")
+      end
+    end
+
+    it 'falls back to reading a file located at TLS_KEY in ENV' do
+      tempfile = Tempfile.new('test-tls-key')
+      tempfile.write("BEGIN PRIVATE KEY FILE")
+      tempfile.close
+
+      within_env("TLS_KEY" => tempfile.path) do
+        expect(configuration.tls_key).to eq("BEGIN PRIVATE KEY FILE")
+      end
+
+      tempfile.unlink
+    end
+
+    it 'returns nil when unset' do
+      expect(configuration.tls_key).to be_nil
+    end
+  end
+
+  describe '#tls_certificate' do
+    it 'returns the value set by #tls_certificate=' do
+      within_env("TLS_CERTIFICATE" => 'dummy_path') do
+        configuration.tls_certificate = "BEGIN CERTIFICATE"
+        expect(configuration.tls_certificate = "BEGIN CERTIFICATE")
+      end
+    end
+
+    it 'falls back to reading a file located at TLS_CERTIFICATE in ENV' do
+      tempfile = Tempfile.new('test-tls-cert')
+      tempfile.write("BEGIN CERTIFICATE FILE")
+      tempfile.close
+
+      within_env("TLS_CERTIFICATE" => tempfile.path) do
+        expect(configuration.tls_certificate).to eq("BEGIN CERTIFICATE FILE")
+      end
+
+      tempfile.unlink
+    end
+
+    it 'returns nil when unset' do
+      expect(configuration.tls_certificate).to be_nil
+    end
+  end
 end
