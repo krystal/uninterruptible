@@ -99,6 +99,22 @@ RSpec.describe Uninterruptible::Configuration do
     end
   end
 
+  describe '#tls_enabled?' do
+    it 'returns false by default' do
+      expect(configuration.tls_enabled?).to eq(false)
+    end
+
+    it 'returns true when #tls_certificate is set' do
+      configuration.tls_certificate = 'somethjign'
+      expect(configuration.tls_enabled?).to eq(true)
+    end
+
+    it 'returns true when #tls_key is set' do
+      configuration.tls_key = 'somethjign'
+      expect(configuration.tls_enabled?).to eq(true)
+    end
+  end
+
   describe "#tls_version" do
     it 'returns the value set by #tls_version=' do
       within_env("TLS_VERSION" => 'NOTVERSION') do
@@ -113,8 +129,8 @@ RSpec.describe Uninterruptible::Configuration do
       end
     end
 
-    it 'returns nil when unset' do
-      expect(configuration.tls_version).to be_nil
+    it 'returns TLSv1_2 when unset' do
+      expect(configuration.tls_version).to eq('TLSv1_2')
     end
 
     it "raises an error if the version is not approved" do
