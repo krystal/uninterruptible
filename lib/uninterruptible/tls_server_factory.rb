@@ -10,15 +10,17 @@ module Uninterruptible
     end
 
     def wrap_with_tls(tcp_server)
-      OpenSSL::SSL::SSLServer.new(tcp_server, ssl_context)
+      server = OpenSSL::SSL::SSLServer.new(tcp_server, ssl_context)
+      server.start_immediately = true
+      server
     end
 
     private
 
     def ssl_context
       context = OpenSSL::SSL::SSLContext.new
-      context.cert = configuration.tls_certificate
-      context.key = configuration.tls_key
+      context.cert = OpenSSL::X509::Certificate.new(configuration.tls_certificate)
+      context.key = OpenSSL::PKey::RSA.new(configuration.tls_key)
       context.ssl_version = configuration.tls_version.to_sym
       context
     end

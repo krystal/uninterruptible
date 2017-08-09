@@ -22,7 +22,7 @@ module Uninterruptible
       @bind_address || "0.0.0.0"
     end
 
-    # URI to bind to, falls back to tcp://bind_address:bind_port if unset
+    # URI to bind to, falls back to tcp://bind_address:bind_port if unset. Accepts tcp:// or unix:// schemes.
     def bind
       @bind || "tcp://#{bind_address}:#{bind_port}"
     end
@@ -52,11 +52,16 @@ module Uninterruptible
       @log_level || Logger::INFO
     end
 
+    # Should the socket server be wrapped with a TLS server (TCP only). Automatically enabled when #tls_key or
+    # #tls_certificate is set
+    def tls_enabled?
+      !tls_key.nil? || !tls_certificate.nil?
+    end
+
     # TLS version to use for the connection. Must be one of +Uninterruptible::Configuration::AVAILABLE_SSL_VERSIONS+
     # If unset, connection will be unencrypted.
     def tls_version
-      version = (@tls_version || ENV['TLS_VERSION'])
-      return if version.nil?
+      version = @tls_version || ENV['TLS_VERSION'] || 'TLSv1_2'
 
       unless AVAILABLE_SSL_VERSIONS.include?(version)
         raise ConfigurationError, "Please ensure tls_version is one of #{AVAILABLE_SSL_VERSIONS.join(', ')}"

@@ -108,7 +108,7 @@ module Uninterruptible
       end
     end
 
-    # Listen (or reconnect) to the bind address and port specified in the config. If socket_server_FD is set in the env,
+    # Listen (or reconnect) to the bind address and port specified in the config. If SERVER_FD_VAR is set in the env,
     # reconnect to that file descriptor. Once @socket_server is set, write the file descriptor ID to the env.
     def establish_socket_server
       @socket_server = Uninterruptible::Binder.new(server_configuration.bind).bind_to_socket
@@ -117,6 +117,10 @@ module Uninterruptible
 
       @socket_server.autoclose = false
       @socket_server.close_on_exec = false
+
+      if server_configuration.tls_enabled?
+        @socket_server = Uninterruptible::TLSServerFactory.new(server_configuration).wrap_with_tls(@socket_server)
+      end
 
       ENV[SERVER_FD_VAR] = @socket_server.to_i.to_s
     end
