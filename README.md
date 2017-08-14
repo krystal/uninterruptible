@@ -126,6 +126,12 @@ end
 
 If you would like to encrypt your TCP socket, Uninterruptible supports TLSv1.1 and TLSv1.2. Simply set `configuration.tls_key` and `configuration.tls_certificate` (see "Configuration" above) and your TCP socket will automatically be wrapped with TLS.
 
+To generate a key, run a command similar to the following:
+
+```sh
+openssl req -newkey rsa:4096 -nodes -sha512 -x509 -days 3650 -nodes -out tls_cert.pem -keyout tls_key.pem
+```
+
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/darkphnx/uninterruptible.
