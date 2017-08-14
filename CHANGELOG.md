@@ -1,5 +1,8 @@
 # Changelog
 
+# 2.1.1
+* Prevent bad SSL handshakes from crashing server
+
 # 2.1.0
 * Add TLS support for TCP connections
 
