@@ -6,7 +6,7 @@ module Uninterruptible
     AVAILABLE_SSL_VERSIONS = %w[TLSv1_1 TLSv1_2].freeze
 
     attr_writer :bind, :bind_port, :bind_address, :pidfile_path, :start_command, :log_path, :log_level, :tls_version,
-      :tls_key, :tls_certificate
+      :tls_key, :tls_certificate, :verify_client_tls_certificate, :client_tls_certificate_ca
 
     # Available TCP Port for the server to bind to (required). Falls back to environment variable PORT if set.
     #
@@ -80,6 +80,19 @@ module Uninterruptible
     # read from a file at that location
     def tls_certificate
       @tls_certificate || (ENV['TLS_CERTIFICATE'] ? File.read(ENV['TLS_CERTIFICATE']) : nil)
+    end
+
+    # Should the client be required to present it's own SSL Certificate? Set #verify_client_tls_certificate to true,
+    # or environment variable VERIFY_CLIENT_TLS_CERTIFICATE to enable
+    def verify_client_tls_certificate?
+      @verify_client_tls_certificate == true || !ENV['VERIFY_CLIENT_TLS_CERTIFICATE'].nil? ||
+        !client_tls_certificate_ca.nil?
+    end
+
+    # Validate any connecting clients against a specific CA. If environment variable CLIENT_TLS_CERTIFICATE_CA is set,
+    # attempt to read from that file. Setting this enables #verify_client_tls_certificate?
+    def client_tls_certificate_ca
+      @client_tls_certificate_ca || ENV['CLIENT_TLS_CERTIFICATE_CA']
     end
   end
 end

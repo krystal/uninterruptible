@@ -188,4 +188,50 @@ RSpec.describe Uninterruptible::Configuration do
       expect(configuration.tls_certificate).to be_nil
     end
   end
+
+  describe '#client_tls_certificate_ca' do
+    it 'returns the value set by #client_tls_certificate_ca=' do
+      within_env("CLIENT_TLS_CERTIFICATE" => 'dummy_path') do
+        configuration.client_tls_certificate_ca = "BEGIN CERTIFICATE"
+        expect(configuration.client_tls_certificate_ca == "BEGIN CERTIFICATE")
+      end
+    end
+
+    it 'falls back to reading a file located at CLIENT_TLS_CERTIFICATE_CA in ENV' do
+      within_env("CLIENT_TLS_CERTIFICATE_CA" => 'notarealca') do
+        expect(configuration.client_tls_certificate_ca).to eq("notarealca")
+      end
+    end
+
+    it 'returns nil when unset' do
+      expect(configuration.client_tls_certificate_ca).to be_nil
+    end
+  end
+
+  describe '#verify_client_tls_certificate?' do
+    it 'returns true when #verify_client_tls_certificate is true' do
+      configuration.verify_client_tls_certificate = true
+      expect(configuration.verify_client_tls_certificate?).to be(true)
+    end
+
+    it 'returns false if #verify_client_tls_certificate is anything else' do
+      configuration.verify_client_tls_certificate = 'not a true bool'
+      expect(configuration.verify_client_tls_certificate?).to be(false)
+    end
+
+    it 'returns false by default' do
+      expect(configuration.verify_client_tls_certificate?).to be(false)
+    end
+
+    it 'returns true when VERIFY_CLIENT_TLS_CERTIFICATE is set' do
+      within_env("VERIFY_CLIENT_TLS_CERTIFICATE" => 'anything') do
+        expect(configuration.verify_client_tls_certificate?).to be(true)
+      end
+    end
+
+    it 'returns true if #client_tls_certificate_ca is set' do
+      configuration.client_tls_certificate_ca = "BEGIN CERTIFICATE"
+      expect(configuration.verify_client_tls_certificate?).to be(true)
+    end
+  end
 end
