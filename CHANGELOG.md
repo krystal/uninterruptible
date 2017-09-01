@@ -1,5 +1,9 @@
 # Changelog
 
+# 2.2.0
+* Verify client TLS certificates
+* Allow trusted client CA to be set
+
 # 2.1.1
 * Prevent bad SSL handshakes from crashing server
 

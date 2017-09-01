@@ -67,6 +67,8 @@ echo_server.configure do |config|
   config.tls_version = 'TLSv1_2' # TLS version to use, defaults to TLSv1_2, falls back to ENV['TLS_VERSION']
   config.tls_key = nil # Private key to use for TLS, reads file from ENV['TLS_KEY'] if set
   config.tls_certificate = nil # Certificate to use for TLS, reads file from ENV['TLS_CERTIFICATE'] if set
+  config.verify_client_tls_certificate = false # Should client TLS certificates be required and verifiyed? Falls back to ENV['VERIFY_CLIENT_TLS_CERTIFICATE']
+  config.client_tls_certificate_ca = nil # Path to a trusted CA for client certificates. Implies `config.verify_client_tls_certificate = true`. Falls back to ENV['CLIENT_TLS_CERTIFICATE_CA']
 end
 ```
 
