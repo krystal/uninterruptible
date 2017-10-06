@@ -1,5 +1,8 @@
 # Changelog
 
+# 2.2.1
+* Allow multiple certificates to be used in one build file
+
 # 2.2.0
 * Verify client TLS certificates
 * Allow trusted client CA to be set
