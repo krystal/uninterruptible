@@ -4,6 +4,20 @@ module Uninterruptible
   class TLSServerFactory
     attr_reader :configuration
 
+    # Extracts pulling multiple certificates out of one file
+    class CertificateChain
+      attr_reader :cert_file
+
+      def initialize(cert_file)
+        @cert_file = cert_file
+      end
+
+      def to_a
+        certs = cert_file.scan(/-----BEGIN CERTIFICATE-----.+?-----END CERTIFICATE-----/m)
+        certs.map { |cert| OpenSSL::X509::Certificate.new(cert) }
+      end
+    end
+
     # @param [Uninterruptible::Configuration] configuration Object with valid TLS configuration options
     #
     # @raise [Uninterruptible::ConfigurationError] Correct options are not set for TLS
@@ -30,7 +44,11 @@ module Uninterruptible
     # @return [OpenSSL::SSL::SSLContext] SSL context for the server config
     def ssl_context
       context = OpenSSL::SSL::SSLContext.new
-      context.cert = OpenSSL::X509::Certificate.new(configuration.tls_certificate)
+
+      certificates = CertificateChain.new(configuration.tls_certificate).to_a
+      context.cert = certificates.shift
+      context.extra_chain_cert = certificates # Remaining certificataes that aren't the primary. Could be empty.
+
       context.key = OpenSSL::PKey::RSA.new(configuration.tls_key)
       context.ssl_version = configuration.tls_version.to_sym
 
