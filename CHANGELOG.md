@@ -1,5 +1,8 @@
 # Changelog
 
+# 2.3.0
+* Incoming connections can be restricted to certain networks by setting `allowed_networks` in the configuration.
+
 # 2.2.1
 * Allow multiple certificates to be used in one build file
 
