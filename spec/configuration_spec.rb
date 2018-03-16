@@ -193,7 +193,7 @@ RSpec.describe Uninterruptible::Configuration do
     it 'returns the value set by #client_tls_certificate_ca=' do
       within_env("CLIENT_TLS_CERTIFICATE" => 'dummy_path') do
         configuration.client_tls_certificate_ca = "BEGIN CERTIFICATE"
-        expect(configuration.client_tls_certificate_ca == "BEGIN CERTIFICATE")
+        expect(configuration.client_tls_certificate_ca).to eq("BEGIN CERTIFICATE")
       end
     end
 
@@ -232,6 +232,36 @@ RSpec.describe Uninterruptible::Configuration do
     it 'returns true if #client_tls_certificate_ca is set' do
       configuration.client_tls_certificate_ca = "BEGIN CERTIFICATE"
       expect(configuration.verify_client_tls_certificate?).to be(true)
+    end
+  end
+
+  describe '#allowed_networks' do
+    it 'returns the value set by allowed_networks=' do
+      within_env("ALLOWED_NETWORKS" => 'not a network') do
+        configuration.allowed_networks = ['192.168.0.0/24']
+        expect(configuration.allowed_networks).to eq(['192.168.0.0/24'])
+      end
+    end
+
+    it 'falls back to ALLOWED_NETWORKS in env when unset, split by comma' do
+      within_env("ALLOWED_NETWORKS" => '192.168.0.0/24,127.0.0.0/8') do
+        expect(configuration.allowed_networks).to eq(['192.168.0.0/24', '127.0.0.0/8'])
+      end
+    end
+
+    it 'returns an empty array when unset' do
+      expect(configuration.allowed_networks).to eq([])
+    end
+  end
+
+  describe '#block_connections?' do
+    it 'returns false when no allowed_networks are set' do
+      expect(configuration.block_connections?).to be false
+    end
+
+    it 'returns true when allowed networks are configured' do
+      configuration.allowed_networks = ['192.168.0.1']
+      expect(configuration.block_connections?).to be true
     end
   end
 end

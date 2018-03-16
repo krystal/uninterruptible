@@ -19,7 +19,8 @@ include TLSConfiguration
 echo_server = EchoServer.new
 echo_server.configure do |config|
   config.start_command = 'spec/support/echo_server'
-  config.log_level = Logger::FATAL
+  config.log_level = Logger::DEBUG
+  config.allowed_networks = ['127.0.0.1/8', '::1/128']
 
   if ENV['TLS_ENABLED']
     config.tls_key = tls_key

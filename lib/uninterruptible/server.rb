@@ -89,7 +89,6 @@ module Uninterruptible
     # concurrency model.
     def accept_client_connection
       Thread.start(socket_server.accept_nonblock) do |client_socket|
-        logger.debug "Accepted connection from #{client_socket.peeraddr.last}"
         process_request(client_socket)
       end
     end
@@ -101,7 +100,13 @@ module Uninterruptible
     def process_request(client_socket)
       mutex.synchronize { @active_connections += 1 }
       begin
-        handle_request(client_socket)
+        client_address = client_socket.peeraddr.last
+        if network_restrictions.connection_allowed_from?(client_address)
+          logger.debug "Accepting connection from #{client_address}"
+          handle_request(client_socket)
+        else
+          logger.debug "Rejecting connection from #{client_address}"
+        end
       ensure
         client_socket.close
         mutex.synchronize { @active_connections -= 1 }
@@ -194,6 +199,10 @@ module Uninterruptible
         ENV.delete('BUNDLE_GEMFILE') # Ensure a fresh bundle is used
         exec("bundle exec --keep-file-descriptors #{server_configuration.start_command}", :close_others => false)
       end
+    end
+
+    def network_restrictions
+      @network_restrictions ||= Uninterruptible::NetworkRestrictions.new(server_configuration)
     end
 
     # The current configuration of this server

@@ -69,6 +69,7 @@ echo_server.configure do |config|
   config.tls_certificate = nil # Certificate to use for TLS, reads file from ENV['TLS_CERTIFICATE'] if set
   config.verify_client_tls_certificate = false # Should client TLS certificates be required and verifiyed? Falls back to ENV['VERIFY_CLIENT_TLS_CERTIFICATE']
   config.client_tls_certificate_ca = nil # Path to a trusted CA for client certificates. Implies `config.verify_client_tls_certificate = true`. Falls back to ENV['CLIENT_TLS_CERTIFICATE_CA']
+  config.allowed_networks = ['127.0.0.1/8', '2001:db8::/32'] # A list of networks that clients are allowed to connect from. If blank, all networks are allowed. Falls back to a comma-separated list from ENV['ALLOWED_NETWORKS']
 end
 ```
 
@@ -96,8 +97,8 @@ By default, Uninterruptible operates on a very simple one thread per connection 
 something more advanced such as a threadpool or an event driven pattern you can define this in your server class.
 
 By overriding `accept_client_connection` you can change how connections are accepted and handled. It is recommended
-that you call `process_request` from this method and still implement `handle_request` to do the bulk of the work since
-`process_request` tracks the number of active connections to the server.
+that you call `process_request` from this method and implement `handle_request` to do the bulk of the work since
+`process_request` tracks the number of active connections to the server and handles network restrictions.
 
 `accept_client_connection` is called whenever a connection is waiting to be accepted on the socket server.
 

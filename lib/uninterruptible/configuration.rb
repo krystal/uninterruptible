@@ -6,7 +6,7 @@ module Uninterruptible
     AVAILABLE_SSL_VERSIONS = %w[TLSv1_1 TLSv1_2].freeze
 
     attr_writer :bind, :bind_port, :bind_address, :pidfile_path, :start_command, :log_path, :log_level, :tls_version,
-      :tls_key, :tls_certificate, :verify_client_tls_certificate, :client_tls_certificate_ca
+      :tls_key, :tls_certificate, :verify_client_tls_certificate, :client_tls_certificate_ca, :allowed_networks
 
     # Available TCP Port for the server to bind to (required). Falls back to environment variable PORT if set.
     #
@@ -93,6 +93,18 @@ module Uninterruptible
     # attempt to read from that file. Setting this enables #verify_client_tls_certificate?
     def client_tls_certificate_ca
       @client_tls_certificate_ca || ENV['CLIENT_TLS_CERTIFICATE_CA']
+    end
+
+    # Specifiy allowed networks to reject all connections except those originating from allowed networks. Set to an
+    # array of networks in CIDR format. If environment variable ALLOWED_NETWORKS is set, a comma separated list will be
+    # read from that. Setting this enables #block_connections?
+    def allowed_networks
+      @allowed_networks || (ENV['ALLOWED_NETWORKS'] && ENV['ALLOWED_NETWORKS'].split(',')) || []
+    end
+
+    # True when allowed_networks is set
+    def block_connections?
+      !allowed_networks.empty?
     end
   end
 end
