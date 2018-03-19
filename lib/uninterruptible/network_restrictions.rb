@@ -31,7 +31,7 @@ module Uninterruptible
     #
     # @raise [Uninterruptible::ConfigurationError] Correct options are not set for network restrictions
     def check_configuration!
-      unless configuration.bind.start_with?('tcp://')
+      if configuration.block_connections? && !configuration.bind.start_with?('tcp://')
         raise ConfigurationError, "Network restrictions can only be used on TCP servers"
       end
     end
