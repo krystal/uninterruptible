@@ -10,8 +10,10 @@ RSpec.describe Uninterruptible::NetworkRestrictions do
       expect(network_restrictions.configuration).to eq(config)
     end
 
-    it 'raises a configuration error if the configuration is not for a TCP server' do
+    it 'raises a configuration error if the configuration is not for a TCP server and restrictions have been made' do
       config.bind = "unix:///tmp/testsocket.sock"
+      config.allowed_networks = allowed_networks
+
       expect { described_class.new(config) }.to raise_error(Uninterruptible::ConfigurationError)
     end
   end
