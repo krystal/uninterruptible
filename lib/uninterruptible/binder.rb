@@ -34,8 +34,8 @@ module Uninterruptible
     #
     # @return [TCPServer] Socket server for the configured address and port
     def bind_to_tcp_socket
-      if ENV[SERVER_FD_VAR]
-        TCPServer.for_fd(ENV[SERVER_FD_VAR].to_i)
+      if ENV[FILE_DESCRIPTOR_SERVER_VAR]
+        TCPServer.for_fd(read_file_descriptor_from_fds)
       else
         TCPServer.new(bind_uri.host, bind_uri.port)
       end
@@ -45,13 +45,15 @@ module Uninterruptible
     #
     # @return [UNIXServer] Socket server for the configured path
     def bind_to_unix_socket
-      if ENV[SERVER_FD_VAR]
-        UNIXServer.for_fd(ENV[SERVER_FD_VAR].to_i)
+      if ENV[FILE_DESCRIPTOR_SERVER_VAR]
+        UNIXServer.for_fd(read_file_descriptor_from_fds)
       else
         File.delete(bind_uri.path) if File.exist?(bind_uri.path)
         UNIXServer.new(bind_uri.path)
       end
     end
+
+    private
 
     # Parse the bind address in the configuration
     #
@@ -64,6 +66,15 @@ module Uninterruptible
       URI.parse(bind_address)
     rescue URI::Error
       raise Uninterruptible::ConfigurationError, "Couldn't parse the bind address: \"#{bind_address}\""
+    end
+
+    # Open a connection to a running FileDesciptorServer on the parent of this server and obtain a file descriptor
+    # for the running socket server on there.
+    def read_file_descriptor_from_fds
+      fds_socket = UNIXSocket.new(ENV[FILE_DESCRIPTOR_SERVER_VAR])
+      socket_file_descriptor = fds_socket.recv_io
+      fds_socket.close
+      socket_file_descriptor.to_i
     end
   end
 end

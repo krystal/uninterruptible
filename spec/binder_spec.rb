@@ -27,16 +27,23 @@ RSpec.describe Uninterruptible::Binder do
         server.close
       end
 
-      it 'rebinds to an existing filedescriptor' do
+      it 'rebinds to an existing socket when a FileDescriptorServer is available' do
         # open a socket first so we can bind to it
         existing_server = TCPServer.new(binder.bind_uri.host, binder.bind_uri.port)
-        existing_file_descriptor = existing_server.to_i
+        existing_server_port = existing_server.addr[2]
 
-        within_env(Uninterruptible::SERVER_FD_VAR => existing_file_descriptor.to_s) do
+        # Start a file descriptor server and prepare it to serve the file descriptor to the binder
+        file_descriptor_server = Uninterruptible::FileDescriptorServer.new(existing_server)
+        Thread.new do
+          file_descriptor_server.serve_file_descriptor
+        end
+
+        within_env(Uninterruptible::FILE_DESCRIPTOR_SERVER_VAR => file_descriptor_server.socket_path) do
           new_server = binder.bind_to_socket
+          new_server_port = existing_server.addr[2]
 
           expect(new_server).to be_a(TCPServer)
-          expect(new_server.to_i).to eq(existing_file_descriptor)
+          expect(new_server_port).to eq(existing_server_port)
 
           new_server.close
         end
@@ -52,16 +59,23 @@ RSpec.describe Uninterruptible::Binder do
         server.close
       end
 
-      it 'rebinds to an existing filedescriptor' do
+      it 'rebinds to an existing socket when a FileDescriporServer is available' do
         File.delete(unix_path) if File.exist?(unix_path)
         existing_server = UNIXServer.new(unix_path)
-        existing_file_descriptor = existing_server.to_i
+        existing_server_path = existing_server.path
 
-        within_env(Uninterruptible::SERVER_FD_VAR => existing_file_descriptor.to_s) do
+        # Start a file descriptor server and prepare it to serve the file descriptor to the binder
+        file_descriptor_server = Uninterruptible::FileDescriptorServer.new(existing_server)
+        Thread.new do
+          file_descriptor_server.serve_file_descriptor
+        end
+
+        within_env(Uninterruptible::FILE_DESCRIPTOR_SERVER_VAR => file_descriptor_server.socket_path) do
           new_server = binder.bind_to_socket
+          new_server_path = new_server.path
 
           expect(new_server).to be_a(UNIXServer)
-          expect(new_server.to_i).to eq(existing_file_descriptor)
+          expect(new_server_path).to eq(existing_server_path)
 
           new_server.close
         end
