@@ -113,12 +113,12 @@ module Uninterruptible
       end
     end
 
-    # Listen (or reconnect) to the bind address and port specified in the config. If SERVER_FD_VAR is set in the env,
-    # reconnect to that file descriptor. Once @socket_server is set, write the file descriptor ID to the env.
+    # Listen (or reconnect) to the bind address and port specified in the config. If FILE_DESCRIPTOR_SERVER_PATH is set
+    # in the env, reconnect to that file descriptor.
     def establish_socket_server
       @socket_server = Uninterruptible::Binder.new(server_configuration.bind).bind_to_socket
       # If there's a file descriptor present, take over from a previous instance of this server and kill it off
-      kill_parent if ENV[SERVER_FD_VAR]
+      kill_parent if ENV[FILE_DESCRIPTOR_SERVER_VAR]
 
       @socket_server.autoclose = false
       @socket_server.close_on_exec = false
@@ -126,8 +126,6 @@ module Uninterruptible
       if server_configuration.tls_enabled?
         @socket_server = Uninterruptible::TLSServerFactory.new(server_configuration).wrap_with_tls(@socket_server)
       end
-
-      ENV[SERVER_FD_VAR] = @socket_server.to_i.to_s
     end
 
     # Send a TERM signal to the parent process. This will be called by a newly spawned server if it has been started
@@ -194,11 +192,22 @@ module Uninterruptible
 
     # Start a new copy of this server, maintaining all current file descriptors and env.
     def hot_restart
+      # Start a FileDescriptorServer running on a unix socket
+      file_descriptor_server = FileDescriptorServer.new(socket_server)
+
       fork do
+        # Let the new server know where to find the file descriptor server
+        ENV[FILE_DESCRIPTOR_SERVER_VAR] = file_descriptor_server.socket_path
+
         Dir.chdir(ENV['APP_ROOT']) if ENV['APP_ROOT']
         ENV.delete('BUNDLE_GEMFILE') # Ensure a fresh bundle is used
-        exec("bundle exec --keep-file-descriptors #{server_configuration.start_command}", :close_others => false)
+
+        exec("bundle exec #{server_configuration.start_command}")
       end
+
+      # Provide the new server with the file descriptor for @socket_server
+      file_descriptor_server.serve_file_descriptor
+      file_descriptor_server.close
     end
 
     def network_restrictions

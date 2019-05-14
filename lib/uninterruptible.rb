@@ -14,5 +14,5 @@ require 'uninterruptible/server'
 module Uninterruptible
   class ConfigurationError < StandardError; end
 
-  SERVER_FD_VAR = 'UNINTERRUPTIBLE_SERVER_FD'.freeze
+  FILE_DESCRIPTOR_SERVER_VAR = 'FILE_DESCRIPTOR_SERVER_PATH'.freeze
 end

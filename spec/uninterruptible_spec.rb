@@ -5,7 +5,7 @@ describe Uninterruptible do
     expect(Uninterruptible::VERSION).not_to be nil
   end
 
-  it 'has the name of the environment variable file descriptors will be stored in' do
-    expect(Uninterruptible::SERVER_FD_VAR).to be_a(String)
+  it 'has the name of the environment variable file descriptor servers will be stored in' do
+    expect(Uninterruptible::FILE_DESCRIPTOR_SERVER_VAR).to be_a(String)
   end
 end
