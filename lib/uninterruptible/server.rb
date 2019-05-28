@@ -107,6 +107,8 @@ module Uninterruptible
         else
           logger.debug "Rejecting connection from #{client_address}"
         end
+      rescue Errno::EINVAL
+        logger.warn "Connection was closed before request could be processed"
       ensure
         client_socket.close
         mutex.synchronize { @active_connections -= 1 }
