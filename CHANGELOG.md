@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.4.1
+* Handle an error raised (`Errno::EINVAL`) when a client would connect and immediately disconnect before any processing occurs.
+
 ## 2.4.0
 * When restarting a server, the socket is passed to the new server via a UNIX socket instead of inheriting open file descriptors from the parent.
 
