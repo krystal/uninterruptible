@@ -52,17 +52,12 @@ module Uninterruptible
 
       logger.info "Starting server on #{server_configuration.bind}"
 
-      # Array of file descriptors to watch in the main loop
+      # Set up each listener and add it to an array ready for the event loop
       @active_descriptors = []
+      @active_descriptors << establish_socket_server
+      @active_descriptors << establish_file_descriptor_server
+      @active_descriptors << setup_signal_traps
 
-      establish_socket_server
-      @active_descriptors << socket_server
-
-      establish_file_descriptor_server
-      @active_descriptors << file_descriptor_server.socket_server
-
-      setup_signal_traps
-      @active_descriptors << signal_pipe_r
       write_pidfile
 
       # Enter the main loop
@@ -83,7 +78,10 @@ module Uninterruptible
     # signal_pipe_r for processing any signals sent to the process.
     def select_loop
       loop do
+        # Wait for descriptors or a 1 second timeout
         readable, = IO.select(@active_descriptors, [], [], 1)
+        # Only process one descriptor per iteration.
+        # We don't want to process a descriptor that has been deleted.
         reader = readable&.first
         if reader == signal_pipe_r
           signal = reader.gets.chomp
@@ -147,13 +145,14 @@ module Uninterruptible
       if server_configuration.tls_enabled?
         @socket_server = Uninterruptible::TLSServerFactory.new(server_configuration).wrap_with_tls(@socket_server)
       end
+      @socket_server
     end
 
     # Create the UNIX socket server that will pass the server file descriptor
     # to the child process when a restart occurs.
     def establish_file_descriptor_server
       @file_descriptor_server = FileDescriptorServer.new(socket_server)
-      @active_descriptors << file_descriptor_server.socket_server
+      @file_descriptor_server.socket_server
     end
 
     # Write the current pid out to pidfile_path if configured
@@ -174,6 +173,7 @@ module Uninterruptible
           @signal_pipe_w.puts(signal_name)
         end
       end
+      @signal_pipe_r
     end
 
     # When a signal has been caught, it should be passed here for the appropriate action to be taken
