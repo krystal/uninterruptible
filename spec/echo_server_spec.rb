@@ -51,12 +51,23 @@ RSpec.describe "EchoServer" do
         end
       end
 
+      # Make sure the thread has had time to establish a socket
+      sleep 0.1
+
       # Try to kill immediately, this should fail
       Process.kill("TERM", current_echo_pid)
+
+      # Make sure the term has time to arrive
+      sleep 0.1
+
       expect(echo_server_running?).to be true
 
       # Should quit after the last process has disconnected
       connection_thread.join
+
+      # Make sure the process has time to gracefully exit
+      sleep 1
+
       expect(echo_server_running?).to be false
     end
 
@@ -94,7 +105,6 @@ RSpec.describe "EchoServer" do
       Process.kill('USR1', original_pid)
 
       wait_for_pid_change
-
       expect(pid_running?(original_pid)).to be false
     end
 
@@ -114,7 +124,7 @@ RSpec.describe "EchoServer" do
     socket = TCPSocket.new("localhost", echo_port)
     yield socket if block_given?
   ensure
-    socket.close
+    socket.close if socket
   end
 
   def echo_server_running?
