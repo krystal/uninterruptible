@@ -16,7 +16,7 @@ module Uninterruptible
 
     # @return [String] Location on disk where socket server is listening
     def socket_path
-      @socket_path ||= File.join(socket_directory, 'file_descriptor_server.sock')
+      @socket_path ||= File.join(socket_directory, 'fd.sock')
     end
 
     # Accept the next client connection and send it the file descriptor
@@ -41,7 +41,7 @@ module Uninterruptible
     private
 
     def socket_directory
-      @socket_directory ||= Dir.mktmpdir('uninterruptible-')
+      @socket_directory ||= Dir.mktmpdir('u-')
     end
 
     def start_socket_server
