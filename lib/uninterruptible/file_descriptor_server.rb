@@ -26,7 +26,7 @@ module Uninterruptible
       raise "File descriptor server has been closed" if socket_server.closed?
 
       client = socket_server.accept
-      client.send_io(io_object)
+      client.send_io(io_object.to_io)
       client.close
     end
 
