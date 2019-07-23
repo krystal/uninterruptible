@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.5.0
+* Rewrite restart code to avoid potentially nasty hangs.
+
 ## 2.4.1
 * Handle an error raised (`Errno::EINVAL`) when a client would connect and immediately disconnect before any processing occurs.
 
