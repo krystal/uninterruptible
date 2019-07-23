@@ -30,7 +30,7 @@ module Uninterruptible
   module Server
     def self.included(base)
       base.class_eval do
-        attr_reader :active_connections, :socket_server, :signal_pipe_r, :signal_pipe_w, :mutex
+        attr_reader :active_connections, :socket_server, :signal_pipe_r, :signal_pipe_w, :mutex, :file_descriptor_server
       end
     end
 
@@ -52,9 +52,15 @@ module Uninterruptible
 
       logger.info "Starting server on #{server_configuration.bind}"
 
-      establish_socket_server
+      # Set up each listener and add it to an array ready for the event loop
+      @active_descriptors = []
+      @active_descriptors << establish_socket_server
+      @active_descriptors << establish_file_descriptor_server
+      @active_descriptors << setup_signal_traps
+
       write_pidfile
-      setup_signal_traps
+
+      # Enter the main loop
       select_loop
     end
 
@@ -72,15 +78,31 @@ module Uninterruptible
     # signal_pipe_r for processing any signals sent to the process.
     def select_loop
       loop do
-        readable, = IO.select([socket_server, signal_pipe_r])
-        readable.each do |reader|
-          if reader == socket_server
-            accept_client_connection
-          elsif reader == signal_pipe_r
-            signal = reader.gets.chomp
-            process_signal(signal)
+        # Wait for descriptors or a 1 second timeout
+        readable, = IO.select(@active_descriptors, [], [], 1)
+        # Only process one descriptor per iteration.
+        # We don't want to process a descriptor that has been deleted.
+        reader = readable&.first
+        if reader == signal_pipe_r
+          signal = reader.gets.chomp
+          process_signal(signal)
+        elsif reader == file_descriptor_server.socket_server
+          file_descriptor_server.serve_file_descriptor
+          @active_descriptors.delete(file_descriptor_server.socket_server)
+          graceful_shutdown
+        elsif reader == socket_server
+          accept_client_connection
+        end
+
+        if @shutdown
+          if active_connections.zero?
+            logger.debug "No more active connections. Exiting'"
+            Process.exit(0)
+          else
+            logger.debug "#{active_connections} connections still active"
           end
         end
+
       end
     end
 
@@ -119,22 +141,18 @@ module Uninterruptible
     # in the env, reconnect to that file descriptor.
     def establish_socket_server
       @socket_server = Uninterruptible::Binder.new(server_configuration.bind).bind_to_socket
-      # If there's a file descriptor present, take over from a previous instance of this server and kill it off
-      kill_parent if ENV[FILE_DESCRIPTOR_SERVER_VAR]
-
-      @socket_server.autoclose = false
-      @socket_server.close_on_exec = false
 
       if server_configuration.tls_enabled?
         @socket_server = Uninterruptible::TLSServerFactory.new(server_configuration).wrap_with_tls(@socket_server)
       end
+      @socket_server
     end
 
-    # Send a TERM signal to the parent process. This will be called by a newly spawned server if it has been started
-    # by another instance of this server.
-    def kill_parent
-      logger.debug "Killing parent process #{Process.ppid}"
-      Process.kill('TERM', Process.ppid)
+    # Create the UNIX socket server that will pass the server file descriptor
+    # to the child process when a restart occurs.
+    def establish_file_descriptor_server
+      @file_descriptor_server = FileDescriptorServer.new(socket_server)
+      @file_descriptor_server.socket_server
     end
 
     # Write the current pid out to pidfile_path if configured
@@ -155,6 +173,7 @@ module Uninterruptible
           @signal_pipe_w.puts(signal_name)
         end
       end
+      @signal_pipe_r
     end
 
     # When a signal has been caught, it should be passed here for the appropriate action to be taken
@@ -164,12 +183,11 @@ module Uninterruptible
     # @param [String] signal_name Signal to process
     def process_signal(signal_name)
       if signal_name == 'TERM'
-        if $shutdown
+        if @shutdown
           logger.info "TERM received again, exiting immediately"
-          Process.exit(1) if $shutdown
+          Process.exit(1)
         else
           logger.info "TERM received, starting graceful shutdown"
-          $shutdown = true
           graceful_shutdown
         end
       elsif signal_name == 'USR1'
@@ -181,22 +199,12 @@ module Uninterruptible
     # Stop listening on socket_server, wait until all active connections have finished processing and exit with 0.
     def graceful_shutdown
       socket_server.close unless socket_server.closed?
-
-      until active_connections.zero?
-        logger.debug "#{active_connections} connections still active"
-        sleep 0.5
-      end
-
-      logger.debug "No more active connections. Exiting'"
-
-      Process.exit(0)
+      @active_descriptors.delete(socket_server)
+      @shutdown = true
     end
 
     # Start a new copy of this server, maintaining all current file descriptors and env.
     def hot_restart
-      # Start a FileDescriptorServer running on a unix socket
-      file_descriptor_server = FileDescriptorServer.new(socket_server)
-
       fork do
         # Let the new server know where to find the file descriptor server
         ENV[FILE_DESCRIPTOR_SERVER_VAR] = file_descriptor_server.socket_path
@@ -206,10 +214,6 @@ module Uninterruptible
 
         exec("bundle exec #{server_configuration.start_command}")
       end
-
-      # Provide the new server with the file descriptor for @socket_server
-      file_descriptor_server.serve_file_descriptor
-      file_descriptor_server.close
     end
 
     def network_restrictions
