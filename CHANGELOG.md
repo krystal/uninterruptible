@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.5.2
+* Pass a class to UNIXSocket.recv_io to have the C-code instantiate our socket server. If we don't, they have a habit of getting garbage collected resulting in Errno:EBADF exceptions
+
 ## 2.5.1
 * Fix bug where new restart code didn't work with TLS servers
 * Add echo server tests for UNIX and TLS servers
