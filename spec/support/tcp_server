@@ -1,0 +1,12 @@
+#!/usr/bin/env ruby
+
+require_relative './echo_server'
+
+tcp_server = EchoServer.new
+tcp_server.configure do |config|
+  config.start_command = 'spec/support/tcp_server'
+  config.bind = 'tcp://127.0.0.1:6789'
+  config.log_level = Logger::FATAL
+  config.allowed_networks = ['127.0.0.1/8', '::1/128']
+end
+tcp_server.run

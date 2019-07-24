@@ -1,0 +1,11 @@
+#!/usr/bin/env ruby
+
+require_relative './echo_server'
+
+unix_server = EchoServer.new
+unix_server.configure do |config|
+  config.start_command = 'spec/support/unix_server'
+  config.bind = 'unix:///tmp/echo_server.sock'
+  config.log_level = Logger::FATAL
+end
+unix_server.run

@@ -1,0 +1,18 @@
+#!/usr/bin/env ruby
+
+require_relative './echo_server'
+require_relative './tls_configuration'
+
+include TLSConfiguration
+
+tls_server = EchoServer.new
+tls_server.configure do |config|
+  config.start_command = 'spec/support/tls_server'
+  config.bind = 'tcp://127.0.0.1:6789'
+  config.log_level = Logger::FATAL
+  config.allowed_networks = ['127.0.0.1/8', '::1/128']
+  config.tls_key = tls_key
+  config.tls_certificate = tls_certificate
+  config.tls_version = 'TLSv1_2'
+end
+tls_server.run

@@ -1,23 +1,19 @@
 # Include this module in your tests to start and stop an echo server for testing purposes.
 module EchoServerControls
-  def start_echo_server
+  def start_echo_server(server_name)
     cleanup_echo_server
 
     fork do
-      exec({ "PORT" => echo_port.to_s, "PID_FILE" => echo_pid_path }, "bundle exec spec/support/echo_server")
+      exec({ "PID_FILE" => echo_pid_path }, "bundle exec spec/support/#{server_name}")
     end
 
     # Wait for the pidfile to appear so we know the server is started
-    sleep 0.5 until File.exist?(echo_pid_path)
+    sleep 0.1 until File.exist?(echo_pid_path)
   end
 
   def stop_echo_server
     Process.kill("TERM", current_echo_pid)
     cleanup_echo_server
-  end
-
-  def echo_port
-    6789
   end
 
   def current_echo_pid
