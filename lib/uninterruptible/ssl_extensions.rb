@@ -22,6 +22,7 @@ module OpenSSL
           ssl
         rescue SSLError
           sock.close
+          raise
         end
       end
     end

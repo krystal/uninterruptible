@@ -113,6 +113,8 @@ module Uninterruptible
       Thread.start(socket_server.accept_nonblock) do |client_socket|
         process_request(client_socket)
       end
+    rescue OpenSSL::SSL::SSLError => e
+      logger.warn e.message
     end
 
     # Keeps a track of the number of active connections and passes the client connection to #handle_request for the
