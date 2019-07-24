@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.5.3
+* Accept new connections with #accept instead of #accept_nonblock
+* Remove SSLExtensions module as this is no longer required
+
 ## 2.5.2
 * Pass a class to UNIXSocket.recv_io to have the C-code instantiate our socket server. If we don't, they have a habit of getting garbage collected resulting in Errno:EBADF exceptions
 
