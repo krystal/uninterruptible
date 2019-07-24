@@ -35,7 +35,7 @@ module Uninterruptible
     # @return [TCPServer] Socket server for the configured address and port
     def bind_to_tcp_socket
       if ENV[FILE_DESCRIPTOR_SERVER_VAR]
-        TCPServer.for_fd(read_file_descriptor_from_fds)
+        bind_from_file_descriptor_server(TCPServer)
       else
         TCPServer.new(bind_uri.host, bind_uri.port)
       end
@@ -46,7 +46,7 @@ module Uninterruptible
     # @return [UNIXServer] Socket server for the configured path
     def bind_to_unix_socket
       if ENV[FILE_DESCRIPTOR_SERVER_VAR]
-        UNIXServer.for_fd(read_file_descriptor_from_fds)
+        bind_from_file_descriptor_server(UNIXServer)
       else
         File.delete(bind_uri.path) if File.exist?(bind_uri.path)
         UNIXServer.new(bind_uri.path)
@@ -70,11 +70,15 @@ module Uninterruptible
 
     # Open a connection to a running FileDesciptorServer on the parent of this server and obtain a file descriptor
     # for the running socket server on there.
-    def read_file_descriptor_from_fds
+    #
+    # @param socket_klass [#for_fd] Class which responds to for_fd and accepts a file descriptor
+    #
+    # @return [IO] An IO instance created from the file descriptor received from the file descriptor server
+    def bind_from_file_descriptor_server(socket_klass)
       fds_socket = UNIXSocket.new(ENV[FILE_DESCRIPTOR_SERVER_VAR])
-      socket_file_descriptor = fds_socket.recv_io
+      socket_file_descriptor = fds_socket.recv_io(socket_klass)
       fds_socket.close
-      socket_file_descriptor.to_i
+      socket_file_descriptor
     end
   end
 end
