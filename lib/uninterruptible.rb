@@ -2,7 +2,6 @@ require 'openssl'
 require 'ipaddr'
 
 require "uninterruptible/version"
-require 'uninterruptible/ssl_extensions'
 require 'uninterruptible/configuration'
 require 'uninterruptible/binder'
 require 'uninterruptible/file_descriptor_server'
