@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.5.1
+* Fix bug where new restart code didn't work with TLS servers
+* Add echo server tests for UNIX and TLS servers
+
 ## 2.5.0
 * Rewrite restart code to avoid potentially nasty hangs.
 
