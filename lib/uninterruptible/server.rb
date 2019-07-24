@@ -110,7 +110,7 @@ module Uninterruptible
     # loop for example. By default this creates one thread per connection. Override this method to provide a new
     # concurrency model.
     def accept_client_connection
-      Thread.start(socket_server.accept_nonblock) do |client_socket|
+      Thread.start(socket_server.accept) do |client_socket|
         process_request(client_socket)
       end
     rescue OpenSSL::SSL::SSLError => e
