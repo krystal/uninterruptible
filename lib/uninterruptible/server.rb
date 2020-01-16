@@ -117,6 +117,7 @@ module Uninterruptible
           rescue OpenSSL::SSL::SSLError => e
             logger.warn e.message
             client_socket.close rescue true
+            Thread.exit
           end
         end
         process_request(client_socket)
