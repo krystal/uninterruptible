@@ -6,8 +6,8 @@ require 'uninterruptible/version'
 Gem::Specification.new do |spec|
   spec.name          = "uninterruptible"
   spec.version       = Uninterruptible::VERSION
-  spec.authors       = ["Dan Wentworth"]
-  spec.email         = ["dan@atechmedia.com"]
+  spec.authors       = ["Dan Wentworth", "Charlie Smurthwaite"]
+  spec.email         = ["support@atechmedia.com"]
 
   spec.summary       = "Zero-downtime restarts for your trivial socket servers"
   spec.description   = "Uninterruptible gives your socket server magic restarting powers. Send your running "\
