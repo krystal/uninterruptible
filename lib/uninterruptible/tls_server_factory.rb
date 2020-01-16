@@ -33,7 +33,7 @@ module Uninterruptible
     # @return [OpenSSL::SSL::SSLServer] tcp_server with a TLS layer
     def wrap_with_tls(tcp_server)
       server = OpenSSL::SSL::SSLServer.new(tcp_server, ssl_context)
-      server.start_immediately = true
+      server.start_immediately = false
       server
     end
 

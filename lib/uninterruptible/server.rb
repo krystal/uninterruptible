@@ -111,10 +111,9 @@ module Uninterruptible
     # concurrency model.
     def accept_client_connection
       Thread.start(socket_server.accept) do |client_socket|
+        client_socket.accept if client_socket.is_a?(OpenSSL::SSL::SSLSocket)
         process_request(client_socket)
       end
-    rescue OpenSSL::SSL::SSLError => e
-      logger.warn e.message
     end
 
     # Keeps a track of the number of active connections and passes the client connection to #handle_request for the
